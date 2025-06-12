@@ -4,11 +4,21 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/khandev-bac/lemon/config"
+	"github.com/khandev-bac/lemon/internals/firebase"
 	"github.com/khandev-bac/lemon/internals/handler"
 	"github.com/khandev-bac/lemon/internals/middleware"
+	"github.com/khandev-bac/lemon/internals/repo"
+	"github.com/khandev-bac/lemon/internals/service"
 )
 
-func MainRoute(handler *handler.UserHandler) http.Handler {
+func MainRoute() http.Handler {
+	firebasePath := firebase.NewFirebaseService(config.AppConfig.FirebasePath)
+	db := config.DB
+	repo := repo.NewRepo(db)
+	service := service.NewService(repo)
+	handler := handler.NewHandler(service, firebasePath)
+
 	r := chi.NewRouter()
 	//public routes
 	r.Post("/sign-up", handler.Signup)

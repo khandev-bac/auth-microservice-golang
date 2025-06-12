@@ -20,10 +20,15 @@ type UserHandler struct {
 	firebase *firebase.FirebaseService
 }
 
-func NewHandler(service *service.UserService) *UserHandler {
+func NewHandler(service *service.UserService, firebase *firebase.FirebaseService) *UserHandler {
 	return &UserHandler{
-		service: service,
+		service:  service,
+		firebase: firebase,
 	}
+}
+func (h *UserHandler) Check(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Ok its fine"))
 }
 
 func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
