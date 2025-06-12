@@ -96,3 +96,35 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		"message": "Logged out successfully",
 	})
 }
+
+func (h *UserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		RefreshToken string `json:"refresh_Token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	claims, err := jwttoken.VerifyJWTAccessToken(req.RefreshToken)
+	if err != nil {
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+	userId, ok1 := claims["id"].(string)
+	email, ok2 := claims["email"].(string)
+	if !ok1 || !ok2 {
+		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+		return
+	}
+	tokens, err := jwttoken.GenerateTokens(uuid.MustParse(userId), email)
+	if err != nil {
+		http.Error(w, "Failed to generate new tokens", http.StatusInternalServerError)
+		return
+	}
+	resp := map[string]interface{}{
+		"accessToken":  tokens.AccessToken,
+		"refreshToken": tokens.RefreshToken,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
