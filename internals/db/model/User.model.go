@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	ID            uuid.UUID `gorm:"type:uuid;primaryKey"`
-	UserName      string    `gorm:"type:text;not null"`
+	UserName      string    `gorm:"type:text;not null;index"`
 	UserEmail     string    `gorm:"type:text;unique;not null"`
 	Password      string    `gorm:"type:text;not null"`
 	UserProfile   string    `gorm:"type:text"`

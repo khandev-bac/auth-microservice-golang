@@ -16,6 +16,11 @@ type UserRepo struct {
 	db *gorm.DB
 }
 
+func NewRepo(db *gorm.DB) *UserRepo {
+	return &UserRepo{
+		db: db,
+	}
+}
 func (r *UserRepo) CreateUser(ctx context.Context, user *model.User) error {
 	return r.db.WithContext(ctx).Create(user).Error
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/khandev-bac/lemon/config"
 )
 
@@ -17,7 +18,7 @@ type Tokens struct {
 var JWT_A_KEY = config.AppConfig.JwtkeysAccess
 var JWT_R_KEY = config.AppConfig.JwtkeysRefresh
 
-func GenerateTokens(id, email string) (*Tokens, error) {
+func GenerateTokens(id uuid.UUID, email string) (*Tokens, error) {
 	AccessTokenclaims := jwt.MapClaims{
 		"id":    id,
 		"email": email,

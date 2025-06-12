@@ -2,12 +2,9 @@ package dto
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type SignupDTO struct {
-	ID          uuid.UUID `json:"id" validate:"required,uuid4"`
 	UserName    string    `json:"user_name" validate:"required,min=3,max=100"`
 	UserEmail   string    `json:"user_email" validate:"required,email"`
 	Password    string    `json:"password" validate:"required,min=6"`
