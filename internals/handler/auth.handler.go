@@ -184,3 +184,26 @@ func (h *UserHandler) FirebaseLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+func (h *UserHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	userIdStr, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	uid, err := uuid.Parse(userIdStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+	err = h.service.DeleteUser(r.Context(), uid)
+	if err != nil {
+		http.Error(w, "failed to delete account"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"error":   false,
+		"message": "Account deleted",
+	})
+}
