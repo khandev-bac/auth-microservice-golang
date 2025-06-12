@@ -3,17 +3,21 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/khandev-bac/lemon/internals/db/dto"
 	"github.com/khandev-bac/lemon/internals/db/model"
+	"github.com/khandev-bac/lemon/internals/firebase"
 	"github.com/khandev-bac/lemon/internals/middleware"
 	"github.com/khandev-bac/lemon/internals/service"
 	jwttoken "github.com/khandev-bac/lemon/utils/jwtToken"
 )
 
 type UserHandler struct {
-	service *service.UserService
+	service  *service.UserService
+	firebase *firebase.FirebaseService
 }
 
 func NewHandler(service *service.UserService) *UserHandler {
@@ -124,6 +128,58 @@ func (h *UserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{
 		"accessToken":  tokens.AccessToken,
 		"refreshToken": tokens.RefreshToken,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *UserHandler) FirebaseLogin(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		http.Error(w, "Missing Firebase token", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	decodeToken, err := h.firebase.VerifyByID(r.Context(), idToken)
+	if err != nil {
+		http.Error(w, "Invalid Firebase token", http.StatusUnauthorized)
+		return
+	}
+
+	emailVal, ok := decodeToken.Claims["email"]
+	if !ok {
+		http.Error(w, "Missing email in token", http.StatusBadRequest)
+		return
+	}
+	email := emailVal.(string)
+
+	name := ""
+	if nameVal, ok := decodeToken.Claims["name"]; ok {
+		name, _ = nameVal.(string)
+	}
+
+	user, err := h.service.FindByEmail(r.Context(), email)
+	if err != nil || user == nil {
+		newUser := &model.User{
+			ID:           uuid.New(),
+			UserName:     name,
+			UserEmail:    email,
+			AuthProvider: "firebase",
+			CreatedAt:    time.Now(),
+		}
+		user, err = h.service.Signup(r.Context(), *newUser)
+		if err != nil {
+			http.Error(w, "Failed to create user", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	tokens, _ := jwttoken.GenerateTokens(user.ID, user.UserEmail)
+	resp := map[string]interface{}{
+		"accessToken":  tokens.AccessToken,
+		"refreshToken": tokens.RefreshToken,
+		"user":         user,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
